@@ -1,40 +1,47 @@
-import tkinter as tk
-from tkinter import messagebox, simpledialog
-import random
 import pygame
-import os
+import random
+import sys
 
-pygame.mixer.init()
+pygame.init()
 
-# Проверка наличия файла с музыкой
-if os.path.exists("background_music.mp3"):
-    pygame.mixer.music.load("background_music.mp3")
-    pygame.mixer.music.set_volume(0.5)
-    pygame.mixer.music.play(-1)
-else:
-    print("Файл background_music.mp3 не найден. Музыка не будет воспроизводиться.")
+WIDTH, HEIGHT = 400, 500
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption('Крестики-нолики с математикой')
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+GRAY = (200, 200, 200)
+
+font = pygame.font.Font(None, 36)
+small_font = pygame.font.Font(None, 24)
+
+pygame.mixer.music.load('background_music.mp3')
+pygame.mixer.music.set_volume(0.5)
+pygame.mixer.music.play(-1)
 
 
 def generate_math_problem(level):
     if level == 1:
         a = random.randint(1, 10)
         b = random.randint(1, 10)
-        operator = random.choice(["+", "-"])
-        problem = f"{a} {operator} {b}"
+        operator = random.choice(['+', '-'])
+        problem = f'{a} {operator} {b}'
         answer = eval(problem)
         return problem, answer
     elif level == 2:
         a = random.randint(10, 50)
         b = random.randint(10, 50)
-        operator = random.choice(["+", "-", "*"])
-        problem = f"{a} {operator} {b}"
+        operator = random.choice(['+', '-', '*'])
+        problem = f'{a} {operator} {b}'
         answer = eval(problem)
         return problem, answer
     elif level == 3:
         a = random.randint(50, 100)
         b = random.randint(50, 100)
-        operator = random.choice(["+", "-", "*", "/"])
-        problem = f"{a} {operator} {b}"
+        operator = random.choice(['+', '-', '*', '/'])
+        problem = f'{a} {operator} {b}'
         answer = eval(problem)
         return problem, answer
 
@@ -53,197 +60,161 @@ def check_win(board, player):
 
 
 class TicTacToe:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Крестики-нолики с математикой")
-        self.root.geometry("400x500")
+    def __init__(self):
         self.level = 1
-        self.board = [[" " for _ in range(3)] for _ in range(3)]
-        self.current_player = "X"
-        self.buttons = [[None for _ in range(3)] for _ in range(3)]
+        self.board = [[' ' for _ in range(3)] for _ in range(3)]
+        self.current_player = 'X'
         self.selected_cell = None
         self.correct_answer = None
+        self.show_problem = False
+        self.problem_text = ''
+        self.user_input = ''
+        self.game_over = False
+        self.in_menu = True
+        self.volume = 0.5
 
-        # Стартовое меню
-        self.start_frame = tk.Frame(self.root)
-        self.game_frame = tk.Frame(self.root)
-        self.problem_frame = tk.Frame(self.root)
+    def draw_board(self):
+        screen.fill(WHITE)
+        for i in range(1, 3):
+            pygame.draw.line(screen, BLACK, (WIDTH // 3 * i, 0), (WIDTH // 3 * i, HEIGHT - 100), 2)
+            pygame.draw.line(screen, BLACK, (0, (HEIGHT - 100) // 3 * i), (WIDTH, (HEIGHT - 100) // 3 * i), 2)
 
-        # Виджеты для ввода примера
-        self.problem_label = tk.Label(self.problem_frame, font=("Arial", 14), height=2)
-        self.problem_label.pack(pady=5)
-        self.answer_entry = tk.Entry(self.problem_frame, font=("Arial", 14), width=15)
-        self.answer_entry.pack(pady=5)
-
-        self.check_button = tk.Button(
-            self.problem_frame, text="Проверить", font=("Arial", 12),
-            command=self.check_answer
-        )
-        self.check_button.pack(pady=5)
-
-        self.exit_button = tk.Button(
-            self.problem_frame, text="Выход", font=("Arial", 12),
-            command=self.root.quit
-        )
-        self.exit_button.pack(pady=5)
-
-        self.problem_frame.pack_forget()
-
-        # Создаем стартовые кнопки один раз
-        self.create_start_widgets()
-
-    def create_start_widgets(self):
-        # Очищаем стартовый фрейм перед созданием кнопок
-        for widget in self.start_frame.winfo_children():
-            widget.destroy()
-
-        tk.Label(self.start_frame, text="Крестики-нолики", font=("Arial", 16)).pack(pady=10)
-        tk.Button(
-            self.start_frame, text="Играть с человеком", font=("Arial", 12),
-            command=self.start_game
-        ).pack(pady=10)
-        tk.Button(
-            self.start_frame, text="Уровень сложности", font=("Arial", 12),
-            command=self.select_level
-        ).pack(pady=10)
-        tk.Button(
-            self.start_frame, text="Настройки громкости", font=("Arial", 12),
-            command=self.adjust_volume
-        ).pack(pady=10)
-        tk.Button(
-            self.start_frame, text="Выход", font=("Arial", 12),
-            command=self.root.quit
-        ).pack(pady=10)
-
-        self.start_frame.pack(pady=50)
-
-    def adjust_volume(self):
-        volume_window = tk.Toplevel(self.root)
-        volume_window.title("Настройка громкости")
-        volume_window.geometry("300x100")
-
-        volume_label = tk.Label(volume_window, text="Установите громкость:", font=("Arial", 12))
-        volume_label.pack(pady=10)
-
-        volume_scale = tk.Scale(volume_window, from_=0.0, to=1.0, resolution=0.1, orient=tk.HORIZONTAL,
-                                length=200, command=lambda value: pygame.mixer.music.set_volume(float(value)))
-        volume_scale.set(pygame.mixer.music.get_volume())
-        volume_scale.pack()
-
-    def start_game(self):
-        self.start_frame.pack_forget()
-        self.problem_frame.pack_forget()
-        self.game_frame.pack()
-        self.create_board()
-
-    def create_board(self):
         for i in range(3):
             for j in range(3):
-                self.buttons[i][j] = tk.Button(
-                    self.game_frame, text="", font=("Arial", 30), width=4, height=2,
-                    command=lambda i=i, j=j: self.on_button_click(i, j))
-                self.buttons[i][j].grid(row=i, column=j, padx=5, pady=5)
+                if self.board[i][j] == 'X':
+                    pygame.draw.line(screen, RED, (j * WIDTH // 3 + 20, i * (HEIGHT - 100) // 3 + 20),
+                                     ((j + 1) * WIDTH // 3 - 20, (i + 1) * (HEIGHT - 100) // 3 - 20), 2)
+                    pygame.draw.line(screen, RED, ((j + 1) * WIDTH // 3 - 20, i * (HEIGHT - 100) // 3 + 20),
+                                     (j * WIDTH // 3 + 20, (i + 1) * (HEIGHT - 100) // 3 - 20), 2)
+                elif self.board[i][j] == 'O':
+                    pygame.draw.circle(screen, BLUE,
+                                       (j * WIDTH // 3 + WIDTH // 6, i * (HEIGHT - 100) // 3 + (HEIGHT - 100) // 6),
+                                       WIDTH // 8, 2)
 
-        # Кнопка "Выход" во время игры
-        self.exit_game_button = tk.Button(
-            self.game_frame, text="Выход", font=("Arial", 12),
-            command=self.reset_game
-        )
-        self.exit_game_button.grid(row=3, column=0, columnspan=3, pady=10)
+        if self.show_problem:
+            problem_surface = font.render(self.problem_text, True, BLACK)
+            screen.blit(problem_surface, (20, HEIGHT - 80))
+            input_surface = font.render(self.user_input, True, BLACK)
+            screen.blit(input_surface, (20, HEIGHT - 40))
 
-    def toggle_board_state(self, active):
-        state = tk.NORMAL if active else tk.DISABLED
-        for i in range(3):
-            for j in range(3):
-                self.buttons[i][j].config(state=state)
+    def draw_menu(self):
+        screen.fill(WHITE)
+        title_surface = font.render('Крестики-нолики с математикой', True, BLACK)
+        screen.blit(title_surface, (20, 20))
 
-    def on_button_click(self, i, j):
-        if self.board[i][j] != " ":
+        play_button = pygame.Rect(100, 100, 200, 50)
+        pygame.draw.rect(screen, GRAY, play_button)
+        play_text = font.render('Играть', True, BLACK)
+        screen.blit(play_text, (150, 115))
+
+        level_button = pygame.Rect(100, 170, 200, 50)
+        pygame.draw.rect(screen, GRAY, level_button)
+        level_text = font.render(f'Уровень: {self.level}', True, BLACK)
+        screen.blit(level_text, (140, 185))
+
+        volume_button = pygame.Rect(100, 240, 200, 50)
+        pygame.draw.rect(screen, GRAY, volume_button)
+        volume_text = font.render(f'Громкость: {int(self.volume * 100)}%', True, BLACK)
+        screen.blit(volume_text, (120, 255))
+
+        return play_button, level_button, volume_button
+
+    def handle_click(self, pos):
+        if self.show_problem:
             return
 
-        self.selected_cell = (i, j)
-        problem, answer = generate_math_problem(self.level)
-        self.correct_answer = answer
+        x, y = pos
+        row = y // ((HEIGHT - 100) // 3)
+        col = x // (WIDTH // 3)
 
-        # Возвращаем всплывающее окно для решения примера
-        user_answer = self.ask_math_problem(problem)
-        if user_answer is not None and user_answer == answer:
-            self.board[i][j] = self.current_player
-            self.buttons[i][j].config(text=self.current_player)
+        if self.board[row][col] == ' ':
+            self.selected_cell = (row, col)
+            problem, answer = generate_math_problem(self.level)
+            self.correct_answer = answer
+            self.problem_text = f'Решите пример: {problem}'
+            self.show_problem = True
 
-            if check_win(self.board, self.current_player):
-                messagebox.showinfo("Победа!", f"Победил {self.current_player}!")
-                self.reset_game()
-                return
-            elif all(cell != " " for row in self.board for cell in row):
-                messagebox.showinfo("Ничья!", "Игра окончена вничью!")
-                self.reset_game()
-                return
-
-            # Переключаем игрока
-            self.current_player = "O" if self.current_player == "X" else "X"
+    def handle_input(self, event):
+        if event.key == pygame.K_RETURN:
+            try:
+                user_answer = float(self.user_input)
+                if user_answer == self.correct_answer:
+                    row, col = self.selected_cell
+                    self.board[row][col] = self.current_player
+                    if check_win(self.board, self.current_player):
+                        self.game_over = True
+                        self.show_problem = False
+                        self.problem_text = f'Победил {self.current_player}!'
+                    elif all(cell != ' ' for row in self.board for cell in row):
+                        self.game_over = True
+                        self.show_problem = False
+                        self.problem_text = 'Ничья!'
+                    else:
+                        self.current_player = 'O' if self.current_player == 'X' else 'X'
+                else:
+                    self.current_player = 'O' if self.current_player == 'X' else 'X'
+                self.show_problem = False
+                self.user_input = ''
+            except ValueError:
+                self.problem_text = 'Ошибка! Введите число.'
+        elif event.key == pygame.K_BACKSPACE:
+            self.user_input = self.user_input[:-1]
         else:
-            messagebox.showinfo("Ошибка", "Неверный ответ! Ход переходит сопернику.")
-            self.current_player = "O" if self.current_player == "X" else "X"
-
-    def ask_math_problem(self, problem):
-        try:
-            user_input = simpledialog.askstring("Математический пример", f"Решите пример: {problem}")
-            if user_input is None:  # Если пользователь нажал "Отмена"
-                return None
-            return float(user_input)
-        except ValueError:
-            messagebox.showinfo("Ошибка", "Введите число!")
-            return None
-
-    def check_answer(self):
-        try:
-            user_answer = float(self.answer_entry.get())
-        except ValueError:
-            messagebox.showerror("Ошибка", "Введите число!")
-            return
-
-        if user_answer == self.correct_answer:
-            i, j = self.selected_cell
-            self.board[i][j] = self.current_player
-            self.buttons[i][j].config(text=self.current_player)
-
-            if check_win(self.board, self.current_player):
-                messagebox.showinfo("Победа!", f"Победил {self.current_player}!")
-                self.reset_game()
-                return
-            elif all(cell != " " for row in self.board for cell in row):
-                messagebox.showinfo("Ничья!", "Игра окончена вничью!")
-                self.reset_game()
-                return
-
-            self.current_player = "O" if self.current_player == "X" else "X"
-            self.problem_frame.pack_forget()
-            self.toggle_board_state(True)
-        else:
-            messagebox.showinfo("Ошибка", "Неверный ответ! Ход переходит сопернику.")
-            self.current_player = "O" if self.current_player == "X" else "X"
-            self.problem_frame.pack_forget()
-            self.toggle_board_state(True)
+            self.user_input += event.unicode
 
     def reset_game(self):
-        self.board = [[" " for _ in range(3)] for _ in range(3)]
-        self.current_player = "X"
-        self.problem_frame.pack_forget()
-        self.start_frame.pack_forget()
-        self.game_frame.pack_forget()
-        self.create_start_widgets()
-        for i in range(3):
-            for j in range(3):
-                self.buttons[i][j].config(text="", state=tk.NORMAL)
-
-    def select_level(self):
-        level = simpledialog.askinteger("Выбор уровня", "Выберите уровень сложности (1-3):", minvalue=1, maxvalue=3)
-        if level is not None:  # Проверка на отмену
-            self.level = level
+        self.board = [[' ' for _ in range(3)] for _ in range(3)]
+        self.current_player = 'X'
+        self.game_over = False
+        self.show_problem = False
+        self.problem_text = ''
+        self.user_input = ''
 
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    game = TicTacToe(root)
-    root.mainloop()
+def main():
+    game = TicTacToe()
+    clock = pygame.time.Clock()
+    running = True
+
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if game.in_menu:
+                    play_button, level_button, volume_button = game.draw_menu()
+                    if play_button.collidepoint(event.pos):
+                        game.in_menu = False
+                    elif level_button.collidepoint(event.pos):
+                        game.level = (game.level % 3) + 1
+                    elif volume_button.collidepoint(event.pos):
+                        game.volume = (game.volume + 0.1) % 1.1
+                        pygame.mixer.music.set_volume(game.volume)
+                elif not game.game_over:
+                    game.handle_click(event.pos)
+            elif event.type == pygame.KEYDOWN and game.show_problem:
+                game.handle_input(event)
+            elif event.type == pygame.KEYDOWN and game.game_over:
+                if event.key == pygame.K_r:
+                    game.reset_game()
+                    game.in_menu = True
+
+        if game.in_menu:
+            game.draw_menu()
+        else:
+            game.draw_board()
+            if game.game_over:
+                game_over_surface = font.render(game.problem_text, True, BLACK)
+                screen.blit(game_over_surface, (20, HEIGHT - 40))
+                restart_surface = small_font.render('Нажмите R для рестарта', True, BLACK)
+                screen.blit(restart_surface, (20, HEIGHT - 20))
+
+        pygame.display.flip()
+        clock.tick(30)
+
+    pygame.quit()
+    sys.exit()
+
+
+if __name__ == '__main__':
+    main()
